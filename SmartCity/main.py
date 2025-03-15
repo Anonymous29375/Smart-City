@@ -1,10 +1,13 @@
 # python imports
+import network
 import pcd8544_fb
 from machine import Pin, SPI, I2C
 import utime
+import ssl
+from umqtt.robust import MQTTClient
+from config import *
 
 # pin numbers
-
 IR_BEAM_PIN = 0
 
 LCD_DC_PIN = 4
@@ -24,11 +27,16 @@ BUZZER_PIN = 28
 RTC_ADDR = 0x68
 RTC_START_REG = 0x00
 
-weekdays  = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
-months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+# Load config settings (and convert to byte strings)
+ADAFRUIT_IO_URL = config["mqtt_host"].encode('utf-8')
+ADAFRUIT_USERNAME = config["mqtt_username"].encode('utf-8')
+ADAFRUIT_IO_KEY = config["mqtt_key"].encode('utf-8')
+ADAFRUIT_IO_FEEDNAME = config["mqtt_topic"].encode('utf-8')
 
+WIFI_SSID = config["wifi_ssid"].encode('utf-8')
+WIFI_PASSWORD = config["wifi_password"].encode('utf-8')
 
-# setup
+# setup IO
 ir_beam = Pin(IR_BEAM_PIN, Pin.IN, Pin.PULL_UP)
 buzzer = Pin(BUZZER_PIN, Pin.OUT)
 
@@ -44,9 +52,54 @@ lcd_rst = Pin(LCD_RST_PIN)
 lcd_back_light = Pin(LCD_BL_PIN, Pin.OUT, value=1)
 lcd = pcd8544_fb.PCD8544_FB(lcd_spi, lcd_cs, lcd_dc, lcd_rst)
 
+# Connect to WIFI
+print(f"Connecting to WIFI {WIFI_SSID}")
+wifi = network.WLAN(network.STA_IF)
+wifi.active(True)
+wifi.connect(WIFI_SSID, WIFI_PASSWORD)
+
+# wait until the device is connected to the WiFi network
+MAX_ATTEMPTS = 20
+attempt_count = 0
+while not wifi.isconnected() and attempt_count < MAX_ATTEMPTS:
+    attempt_count += 1
+    utime.sleep(1)
+
+if attempt_count == MAX_ATTEMPTS:
+    print('could not connect to the WiFi network')
+else:
+    print("Connected to  WIFI")
+
+# Connect to adafruit IO
+def mqtt_callback(topic, msg):
+    print('Received Data:  Topic = {}, Msg = {}'.format(topic, msg))
+
+mqtt_client_id = 'the_secure_bank'
+
+print(f"Connecting to MQTT as user {ADAFRUIT_USERNAME}")
+context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+context.verify_mode = ssl.CERT_NONE
+client = MQTTClient(client_id=mqtt_client_id, 
+                    server=ADAFRUIT_IO_URL, 
+                    user=ADAFRUIT_USERNAME, 
+                    password=ADAFRUIT_IO_KEY,
+                    ssl=context)
+
+try:      
+    client.connect()
+    print(f'Connected to MQTT, subscribing to feed topic {ADAFRUIT_IO_FEEDNAME}')
+    mqtt_feedname = bytes('{:s}/feeds/{:s}'.format(ADAFRUIT_USERNAME, ADAFRUIT_IO_FEEDNAME), 'utf-8')    
+    client.set_callback(mqtt_callback)                    
+    client.subscribe(mqtt_feedname)  
+except Exception as e:
+    print('Could not connect to MQTT server {}{}'.format(type(e).__name__, e))
+
+
+
+# set up program variables
 is_in_alarm = False
 is_entering = False
-is_armed = True
+is_armed = False
 
 # RTC read date and time
 def read_date_time() -> str:
@@ -112,10 +165,6 @@ def is_beam_triggered():
 
 while True:
     try:
-        # Armed if even minute
-        min = int(f"{read_minute():02x}", 10)
-        is_armed = min % 2 == 0
-
         ir_beam_triggered = is_beam_triggered()
         is_entering = ir_beam_triggered
 
@@ -128,6 +177,7 @@ while True:
         lcd_update()
         lcd.fill(0)
 
+        client.check_msg()
         utime.sleep(0.1)
 
     finally:
