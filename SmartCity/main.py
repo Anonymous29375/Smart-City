@@ -21,6 +21,8 @@ RTC_I2C_PORT = 0
 RTC_I2C_SDA = 20
 RTC_I2C_SCL = 21
 
+REED_SWITCH_PIN = 22
+
 BUZZER_PIN = 28
 
 # RTC values
@@ -41,6 +43,7 @@ feed_topic = f'{config["mqtt_username"]}/feeds/{config["mqtt_topic"]}'.encode('u
 # setup IO
 ir_beam = Pin(IR_BEAM_PIN, Pin.IN, Pin.PULL_UP)
 buzzer = Pin(BUZZER_PIN, Pin.OUT)
+reed_sw = Pin(REED_SWITCH_PIN, Pin.IN, Pin.PULL_UP)
 
 # RTC setup using I2C
 rtc = I2C(RTC_I2C_PORT, scl=Pin(RTC_I2C_SCL), sda=Pin(RTC_I2C_SDA))
@@ -64,7 +67,6 @@ wifi.connect(WIFI_SSID, WIFI_PASSWORD)
 is_in_alarm = False
 is_entering = False
 is_armed = False
-
 
 # wait until the device is connected to the WiFi network
 MAX_ATTEMPTS = 20
@@ -139,16 +141,24 @@ def read_minute() -> int:
 # LCD control
 def lcd_update():
      lcd.text('Bank', 25, 0, 1)
-     lcd.text('Security', 10, 10, 1)
+     lcd.text('Security', 10, 8, 1)
      if is_in_alarm:
-          lcd.text('! ALARM !', 6, 25, 1)
+          lcd.text('! ALARM !', 6, 16, 1)
      elif is_armed:
-        lcd.text('ARMED', 15, 25, 1)
+        lcd.text('ARMED', 15, 16, 1)
      elif is_entering:
-        lcd.text('Entering', 10, 25, 1)
+        lcd.text('Entering', 10, 16, 1)
      else:
-        lcd.text('UNARMED', 10, 25, 1)
-     lcd.text(read_time(), 0, 38, 1)
+        lcd.text('UNARMED', 10, 16, 1)
+
+     print(is_door_open())
+ 
+     if is_door_open():
+        lcd.text('door open', 10, 24, 1)
+     else:
+        lcd.text('door closed', 10, 24, 1)
+
+     lcd.text(read_time(), 0, 32, 1)
      lcd.clear()
      lcd.show()
 
@@ -169,14 +179,20 @@ def is_beam_triggered():
         # the IR beam is triggered when the input is low
         return ir_beam.value() == 0
 
+def is_door_open():
+        # the door is open when the input is high
+        return reed_sw.value() == 1
+
 print('Bank up and running...')
 
 while True:
     try:
-        ir_beam_triggered = is_beam_triggered()
-        is_entering = ir_beam_triggered
+        is_entering = is_beam_triggered()
+        door_open = is_door_open()
 
-        is_in_alarm = ir_beam_triggered and is_armed
+        print(reed_sw.value())
+
+        is_in_alarm = is_entering and is_armed
 
         # sound buzzer if beam triggered
         if is_in_alarm == True:
