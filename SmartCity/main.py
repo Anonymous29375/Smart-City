@@ -36,6 +36,8 @@ ADAFRUIT_IO_FEEDNAME = config["mqtt_topic"].encode('utf-8')
 WIFI_SSID = config["wifi_ssid"].encode('utf-8')
 WIFI_PASSWORD = config["wifi_password"].encode('utf-8')
 
+feed_topic = f'{config["mqtt_username"]}/feeds/{config["mqtt_topic"]}'.encode('utf-8')
+
 # setup IO
 ir_beam = Pin(IR_BEAM_PIN, Pin.IN, Pin.PULL_UP)
 buzzer = Pin(BUZZER_PIN, Pin.OUT)
@@ -58,6 +60,12 @@ wifi = network.WLAN(network.STA_IF)
 wifi.active(True)
 wifi.connect(WIFI_SSID, WIFI_PASSWORD)
 
+# set up program variables
+is_in_alarm = False
+is_entering = False
+is_armed = False
+
+
 # wait until the device is connected to the WiFi network
 MAX_ATTEMPTS = 20
 attempt_count = 0
@@ -72,7 +80,11 @@ else:
 
 # Connect to adafruit IO
 def mqtt_callback(topic, msg):
-    print('Received Data:  Topic = {}, Msg = {}'.format(topic, msg))
+    global is_armed
+    print(feed_topic)
+    print(topic)
+    if topic == feed_topic:
+        is_armed = msg == b'ON'
 
 mqtt_client_id = 'the_secure_bank'
 
@@ -95,11 +107,6 @@ except Exception as e:
     print('Could not connect to MQTT server {}{}'.format(type(e).__name__, e))
 
 
-
-# set up program variables
-is_in_alarm = False
-is_entering = False
-is_armed = False
 
 # RTC read date and time
 def read_date_time() -> str:
@@ -162,6 +169,7 @@ def is_beam_triggered():
         # the IR beam is triggered when the input is low
         return ir_beam.value() == 0
 
+print('Bank up and running...')
 
 while True:
     try:
