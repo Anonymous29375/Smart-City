@@ -23,9 +23,6 @@ BUZZER_PIN = 28
 # RTC values
 RTC_ADDR = 0x68
 RTC_START_REG = 0x00
-rtc_alarm1_reg = 0x07
-rtc_control_reg = 0x0e
-rtc_status_reg = 0x0f
 
 weekdays  = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
 months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -48,6 +45,7 @@ lcd_back_light = Pin(LCD_BL_PIN, Pin.OUT, value=1)
 lcd = pcd8544_fb.PCD8544_FB(lcd_spi, lcd_cs, lcd_dc, lcd_rst)
 
 is_in_alarm = False
+is_entering = False
 is_armed = True
 
 # RTC read date and time
@@ -79,15 +77,17 @@ def read_minute() -> int:
     return min
 
 # LCD control
-def lcd_update(is_in_alarm):
+def lcd_update():
      lcd.text('Bank', 25, 0, 1)
      lcd.text('Security', 10, 10, 1)
      if is_in_alarm:
           lcd.text('! ALARM !', 6, 25, 1)
      elif is_armed:
         lcd.text('ARMED', 15, 25, 1)
+     elif is_entering:
+        lcd.text('Entering', 10, 25, 1)
      else:
-        lcd.text('UNARMED', 6, 25, 1)
+        lcd.text('UNARMED', 10, 25, 1)
      lcd.text(read_time(), 0, 38, 1)
      lcd.clear()
      lcd.show()
@@ -117,6 +117,7 @@ while True:
         is_armed = min % 2 == 0
 
         ir_beam_triggered = is_beam_triggered()
+        is_entering = ir_beam_triggered
 
         is_in_alarm = ir_beam_triggered and is_armed
 
@@ -124,7 +125,7 @@ while True:
         if is_in_alarm == True:
             sound_buzzer(100, 0.1)
 
-        lcd_update(is_in_alarm)
+        lcd_update()
         lcd.fill(0)
 
         utime.sleep(0.1)
