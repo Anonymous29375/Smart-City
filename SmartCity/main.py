@@ -180,7 +180,7 @@ while True:
 
         # sound buzzer if beam triggered
         if is_in_alarm == True:
-            sound_buzzer(100, 0.1)
+            sound_buzzer(100, 0.5)
 
         lcd_update()
         lcd.fill(0)
