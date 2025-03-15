@@ -1,44 +1,39 @@
-# python imports
-import network
-import pcd8544_fb
-from machine import Pin, SPI, I2C
+# Time helpers
 import utime
+
+# Network and secure sockets libraries
+import network
 import ssl
+
+# Hardware related libraries
+from machine import Pin, SPI, I2C
+
+# MQTT libraries for talking to Adafruit IO feeds
 from umqtt.robust import MQTTClient
-from config import *
 
-# pin numbers
-IR_BEAM_PIN = 0
+# LCD library for wall display
+import pcd8544_fb
 
-LCD_DC_PIN = 4
-LCD_CS_PIN = 5
-LCD_SCK_PIN = 6
-LCD_MOSI_PIN = 7
-LCD_RST_PIN = 8
-LCD_BL_PIN = 9
+# Import pin numbers
+from pins import *
 
-RTC_I2C_PORT = 0
-RTC_I2C_SDA = 20
-RTC_I2C_SCL = 21
+# Configuration settings for WIFI, MQTT, etc
+from config import get_config_setting, get_config_setting_bytes_encoded
 
-REED_SWITCH_PIN = 22
+# Real time clocck configuration and libraries
+from rtc import read_time
 
-BUZZER_PIN = 28
-
-# RTC values
-RTC_ADDR = 0x68
-RTC_START_REG = 0x00
 
 # Load config settings (and convert to byte strings)
-ADAFRUIT_IO_URL = config["mqtt_host"].encode('utf-8')
-ADAFRUIT_USERNAME = config["mqtt_username"].encode('utf-8')
-ADAFRUIT_IO_KEY = config["mqtt_key"].encode('utf-8')
-ADAFRUIT_IO_FEEDNAME = config["mqtt_topic"].encode('utf-8')
+ADAFRUIT_IO_URL = get_config_setting_bytes_encoded("mqtt_host")
+ADAFRUIT_USERNAME = get_config_setting_bytes_encoded("mqtt_username")
+ADAFRUIT_IO_KEY = get_config_setting_bytes_encoded("mqtt_key")
+ADAFRUIT_IO_FEEDNAME = get_config_setting_bytes_encoded("mqtt_topic")
 
-WIFI_SSID = config["wifi_ssid"].encode('utf-8')
-WIFI_PASSWORD = config["wifi_password"].encode('utf-8')
+WIFI_SSID = get_config_setting_bytes_encoded("wifi_ssid")
+WIFI_PASSWORD = get_config_setting_bytes_encoded("wifi_password")
 
-feed_topic = f'{config["mqtt_username"]}/feeds/{config["mqtt_topic"]}'.encode('utf-8')
+feed_topic = f'{get_config_setting("mqtt_username")}/feeds/{get_config_setting("mqtt_topic")}'.encode('utf-8')
 
 # setup IO
 ir_beam = Pin(IR_BEAM_PIN, Pin.IN, Pin.PULL_UP)
@@ -109,35 +104,6 @@ except Exception as e:
     print('Could not connect to MQTT server {}{}'.format(type(e).__name__, e))
 
 
-
-# RTC read date and time
-def read_date_time() -> str:
-    t = rtc.readfrom_mem(int(RTC_ADDR),int(RTC_START_REG),7)
-    sec = t[0]&0x7F
-    min = t[1]&0x7F
-    hour = t[2]&0x3F
-    weekday = t[3]&0x07
-    day = t[4]&0x3F
-    month = t[5]&0x1F
-    year = t[6]&0xFF
-    formatted_date_time = "{:02x}/{:02x}/{:02x} {:02x}:{:02x}:{:02x}".format(year, month, day, hour, min, sec)
-    return formatted_date_time
-
-# RTC read time only (no date)
-def read_time() -> str:
-    t = rtc.readfrom_mem(int(RTC_ADDR),int(RTC_START_REG),7)
-    sec = t[0]&0x7F
-    min = t[1]&0x7F
-    hour = t[2]&0x3F
-    formatted_time = "{:02x}:{:02x}:{:02x}".format(hour, min, sec)
-    return formatted_time
-
-# RTC read current minute
-def read_minute() -> int:
-    t = rtc.readfrom_mem(int(RTC_ADDR),int(RTC_START_REG),7)
-    min = t[1]&0x7F
-    return min
-
 # LCD control
 def lcd_update():
      lcd.text('Bank', 25, 0, 1)
@@ -151,14 +117,12 @@ def lcd_update():
      else:
         lcd.text('UNARMED', 10, 16, 1)
 
-     print(is_door_open())
- 
      if is_door_open():
         lcd.text('door open', 10, 24, 1)
      else:
         lcd.text('door closed', 10, 24, 1)
 
-     lcd.text(read_time(), 0, 32, 1)
+     lcd.text(read_time(rtc), 0, 32, 1)
      lcd.clear()
      lcd.show()
 
@@ -189,8 +153,6 @@ while True:
     try:
         is_entering = is_beam_triggered()
         door_open = is_door_open()
-
-        print(reed_sw.value())
 
         is_in_alarm = is_entering and is_armed
 
