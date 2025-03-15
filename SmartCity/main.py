@@ -24,7 +24,7 @@ from config import get_config_setting, get_config_setting_bytes_encoded
 from rtc import read_time
 
 
-# Load config settings (and convert to byte strings)
+# Load config settings
 ADAFRUIT_IO_URL = get_config_setting_bytes_encoded("mqtt_host")
 ADAFRUIT_USERNAME = get_config_setting_bytes_encoded("mqtt_username")
 ADAFRUIT_IO_KEY = get_config_setting_bytes_encoded("mqtt_key")
