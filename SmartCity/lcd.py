@@ -91,9 +91,9 @@ class LCD:
             self.center_text('UNARMED', LINE_3)
 
         if bank.door_open:
-            self.center_text('door open', LINE_4)
+            self.center_text('Safe Open', LINE_4)
         else:
-            self.center_text('door closed', LINE_4)
+            self.center_text('Safe Close', LINE_4)
 
         date_time = rtc.get_date_time()
 
