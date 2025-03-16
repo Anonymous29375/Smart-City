@@ -28,7 +28,7 @@ from bank_state import BankState
 # Input helper class
 from input import Input
 
-# Create a bank state
+# Create a bank state (contains the state of the bank and its devices)
 bank = BankState()
 
 # The infrared beam is triggered when the input is low
