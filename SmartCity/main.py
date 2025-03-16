@@ -2,7 +2,7 @@
 import utime
 
 # Hardware related libraries
-from machine import Pin, SPI, I2C
+from machine import Pin, I2C
 
 # Import pin numbers
 from pins import *
