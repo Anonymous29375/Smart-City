@@ -11,10 +11,10 @@ from pins import *
 from buzzer import sound_buzzer
 
 # WIFI library
-from wifi import wifi_connect
+from wifi import wifi_connect, WIFI_SSID
 
 # Adafruit IO library
-from adafruit_io import AdafruitIO
+from adafruit_io import AdafruitIO, ADAFRUIT_IO_FEEDNAME
 
 # Liquid crystal display library
 from lcd import LCD
@@ -51,11 +51,17 @@ lcd.update_initialising()
 
 adafruit = AdafruitIO(bank)
 
+# Update LCD to initialising WIFI
+lcd.update_initialising("WIFI", WIFI_SSID)
+
 # Try and connect to the WIFI
 wifi_connected = wifi_connect()
 if not wifi_connected:
     print('WIFI related functionality disabled')
 
+
+# Update LCD to initialising WIFI
+lcd.update_initialising("AdafruitIO", ADAFRUIT_IO_FEEDNAME)
 
 # Only connect to Adafruit IO if we could connect to WIFI
 adafruit_io_connected = False

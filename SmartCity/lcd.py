@@ -67,8 +67,15 @@ class LCD:
         
         self.lcd.text(text, padding_left, line * CHARACTER_SIZE, LCD_DARK_COLOR)
 
-    def update_initialising(self) -> None:
-        self.center_text('init', LINE_1)
+    def update_initialising(self, line2: str | None = None, line3: str | None = None) -> None:
+        self.center_text('Initialise:', LINE_1)
+        
+        if line2 is not None:
+            self.center_text(line2, LINE_2)
+
+        if line3 is not None:
+            self.center_text(line3, LINE_3)
+        
         self.update_display()
 
     def update_state(self, rtc: RTC, bank: BankState):
