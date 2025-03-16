@@ -14,7 +14,7 @@ from buzzer import sound_buzzer, turn_off_buzzer
 from wifi import wifi_connect, WIFI_SSID
 
 # Adafruit IO library
-from adafruit_io import AdafruitIO, ADAFRUIT_IO_FEEDNAME
+from adafruit_io import AdafruitIO
 
 # Liquid crystal display library
 from lcd import LCD
@@ -61,12 +61,16 @@ if not wifi_connected:
 
 
 # Update LCD to initialising WIFI
-lcd.update_initialising("AdafruitIO", ADAFRUIT_IO_FEEDNAME)
+lcd.update_initialising("AdafruitIO", 'Remote Arm')
 
 # Only connect to Adafruit IO if we could connect to WIFI
 adafruit_io_connected = False
 if wifi_connected:
     adafruit_io_connected = adafruit.connect()
+
+# Update alarm state on boot
+if adafruit_io_connected is not None:
+    adafruit.send_alarm_update()
 
 print('Bank up and running...')
 
@@ -85,7 +89,11 @@ while True:
         # The back is armed if it is remote armed OR it is after hours
         bank.is_armed = bank.is_remote_armed or is_after_hours
 
+        prev_alarm_state = bank.in_alarm
         bank.in_alarm = (bank.beam_triggered or bank.door_open) and bank.is_armed
+
+        if prev_alarm_state is not bank.in_alarm:
+            adafruit.send_alarm_update()
 
         # sound buzzer if beam triggered
         if bank.in_alarm == True:
