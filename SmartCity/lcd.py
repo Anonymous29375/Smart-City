@@ -11,6 +11,27 @@ from rtc import RTC
 
 from bank_state import BankState
 
+# The LCD frame buffer library is fixed at 8x8 font
+# So for the 84x48 screen that means:
+#   84/8 = 10 full characters (columns) in X direction
+#   48/8 = 6 full characters (rows) in Y direction
+CHARACTER_SIZE = 8
+
+# Because X is 84 pixels wide and we can only have 10 characters it means there are 2 pixels either end of X
+X_PADDING = 2
+
+LCD_COLUMNS = 10
+LCD_ROWS = 6
+
+LINE_1 = 0
+LINE_2 = 1
+LINE_3 = 2
+LINE_4 = 3
+LINE_5 = 4
+LINE_6 = 5
+
+# Monochrome LCD so only dark color defined
+LCD_DARK_COLOR = 1
 
 class LCD:
     def __init__(self):
@@ -22,28 +43,50 @@ class LCD:
         self.lcd_rst = Pin(LCD_RST_PIN)
         self.lcd_back_light = Pin(LCD_BL_PIN, Pin.OUT, value=1)
         self.lcd = PCD8544_FB(self.lcd_spi, self.lcd_cs, self.lcd_dc, self.lcd_rst)
-        self.bank = bank
 
-
-    # LCD control
-    def update(self, rtc: RTC, bank: BankState):
-        self.lcd.text('Bank', 25, 0, 1)
-        self.lcd.text('Security', 10, 8, 1)
-        if bank.in_alarm:
-            self.lcd.text('! ALARM !', 6, 16, 1)
-        elif bank.is_armed:
-            self.lcd.text('ARMED', 15, 16, 1)
-        elif bank.beam_triggered:
-            self.lcd.text('Entering', 10, 16, 1)
-        else:
-            self.lcd.text('UNARMED', 10, 16, 1)
-
-        if bank.door_open:
-            self.lcd.text('door open', 10, 24, 1)
-        else:
-            self.lcd.text('door closed', 10, 24, 1)
-
-        self.lcd.text(rtc.read_time(), 0, 32, 1)
+    def update_display(self):
         self.lcd.clear()
         self.lcd.show()
         self.lcd.fill(0)
+
+    def center_text(self, text: str, line: int) -> None:
+        # Get length of text
+        txt_len = len(text)
+
+        # Work out how much padding left and right of text
+        padding_total = LCD_COLUMNS - txt_len
+
+        # Default to X_PADDING
+        padding_left = X_PADDING
+
+        # if there is no padding then just display starting at X_PADDING
+        if padding_total > 0:
+            # Left padding is half of total paddding
+            padding_chars_left = float(padding_total) / 2.0
+            padding_left = X_PADDING + int(padding_chars_left * CHARACTER_SIZE)
+        
+        self.lcd.text(text, padding_left, line * CHARACTER_SIZE, LCD_DARK_COLOR)
+
+    def update_initialising(self) -> None:
+        self.center_text('init', LINE_1)
+        self.update_display()
+
+    def update_state(self, rtc: RTC, bank: BankState):
+        self.center_text('Bank', LINE_1)
+        self.center_text('Security', LINE_2)
+        if bank.in_alarm:
+            self.center_text('! ALARM !', LINE_3)
+        elif bank.is_armed:
+            self.center_text('ARMED', LINE_3)
+        elif bank.beam_triggered:
+            self.center_text('Entering', LINE_3)
+        else:
+            self.center_text('UNARMED', LINE_3)
+
+        if bank.door_open:
+            self.center_text('door open', LINE_4)
+        else:
+            self.center_text('door closed', LINE_4)
+
+        self.center_text(rtc.read_time(), LINE_5)
+        self.update_display()

@@ -99,6 +99,9 @@ class PCD8544_FB(framebuf.FrameBuffer):
 		self.clear()
 
 	def reset(self):
+		if self.rst is None:
+			return
+
 		# issue reset impulse to reset the display
 		# you need to call power_on() or init() to resume
 		self.rst(1)

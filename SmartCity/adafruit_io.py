@@ -32,24 +32,28 @@ class AdafruitIO:
             self.bank.is_armed = msg == b'ON'
 
 
-    def connect(self) -> MQTTClient | None:
+    def connect(self) -> bool:
         print(f"Connecting to MQTT as user '{ADAFRUIT_USERNAME.decode('utf-16')}'")
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         context.verify_mode = ssl.CERT_NONE
-        client = MQTTClient(client_id=mqtt_client_id, 
+        self.client = MQTTClient(client_id=mqtt_client_id, 
                             server=ADAFRUIT_IO_URL, 
                             user=ADAFRUIT_USERNAME, 
                             password=ADAFRUIT_IO_KEY,
                             ssl=context)
 
         try:      
-            client.connect()
+            self.client.connect()
             print(f"Connected to MQTT, subscribing to feed topic '{ADAFRUIT_IO_FEEDNAME.decode('utf-16')}'")
             mqtt_feedname = bytes('{:s}/feeds/{:s}'.format(ADAFRUIT_USERNAME, ADAFRUIT_IO_FEEDNAME), 'utf-8')    
-            client.set_callback(self.mqtt_callback)                    
-            client.subscribe(mqtt_feedname)  
-            return client
+            self.client.set_callback(self.mqtt_callback)                    
+            self.client.subscribe(mqtt_feedname)  
+
+            return True
         
         except Exception as e:
             print(f'Could not connect to MQTT server {ADAFRUIT_IO_URL.decode('utf-16')}{e}')
-            return None
+            return False
+        
+    def check_msg(self) -> None:
+        self.client.check_msg()

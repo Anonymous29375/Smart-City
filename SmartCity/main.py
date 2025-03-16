@@ -46,14 +46,21 @@ rtc = RTC(i2c_port0)
 # Liquid crystal display 
 lcd = LCD()
 
-if not wifi_connect():
-    print('WIFI related functionality disabled')
+# Update LCD to initialising
+lcd.update_initialising()
 
 adafruit = AdafruitIO(bank)
-adafruit_client = adafruit.connect()
 
-if adafruit_client is None:
-    print('Adafruit IO related functionality disabled')    
+# Try and connect to the WIFI
+wifi_connected = wifi_connect()
+if not wifi_connected:
+    print('WIFI related functionality disabled')
+
+
+# Only connect to Adafruit IO if we could connect to WIFI
+adafruit_io_connected = False
+if wifi_connected:
+    adafruit_io_connected = adafruit.connect()
 
 print('Bank up and running...')
 
@@ -69,10 +76,10 @@ while True:
         if bank.in_alarm == True:
             sound_buzzer(100, 0.5)
 
-        lcd.update(rtc, bank)
-
-        if adafruit_client is not None:
-            adafruit_client.check_msg()
+        lcd.update_state(rtc, bank)
+        
+        if adafruit_io_connected is not None:
+            adafruit.check_msg()
         utime.sleep(0.1)
 
     finally:
