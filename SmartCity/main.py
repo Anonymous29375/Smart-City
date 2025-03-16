@@ -76,6 +76,15 @@ while True:
         bank.door_open = door_input.value()
         bank.beam_triggered = ir_beam_input.value()
 
+        # Get the current date and time
+        date_time = rtc.get_date_time()
+
+        # After hours is before 7am and 7pm and after
+        is_after_hours = date_time.hour < 7 or date_time.hour >= 19 # 19 is 19:00 (or 7pm)
+
+        # The back is armed if it is remote armed OR it is after hours
+        bank.is_armed = bank.is_remote_armed or is_after_hours
+
         bank.in_alarm = (bank.beam_triggered or bank.door_open) and bank.is_armed
 
         # sound buzzer if beam triggered

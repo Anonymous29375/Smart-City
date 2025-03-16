@@ -28,7 +28,7 @@ class AdafruitIO:
     def mqtt_callback(self, topic, msg):
         # is_armed needs to be defined as a global as this is a callback method and not in normal file scope
         if topic == feed_topic:
-            self.bank.is_armed = msg == b'ON'
+            self.bank.is_remote_armed = msg == b'ON'
 
 
     def connect(self) -> bool:
