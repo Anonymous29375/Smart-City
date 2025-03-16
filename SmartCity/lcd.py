@@ -88,5 +88,8 @@ class LCD:
         else:
             self.center_text('door closed', LINE_4)
 
-        self.center_text(rtc.read_time(), LINE_5)
+        date_time = rtc.get_date_time()
+
+        self.center_text(f"{date_time.hour}:{date_time.minute}:{date_time.second}", LINE_5)
+        self.center_text(f"{date_time.year}/{date_time.month}/{date_time.day}", LINE_6)
         self.update_display()
