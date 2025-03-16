@@ -8,7 +8,7 @@ from machine import Pin, I2C
 from pins import *
 
 # Buzzer library
-from buzzer import sound_buzzer
+from buzzer import sound_buzzer, turn_off_buzzer
 
 # WIFI library
 from wifi import wifi_connect, WIFI_SSID
@@ -76,11 +76,14 @@ while True:
         bank.door_open = door_input.value()
         bank.beam_triggered = ir_beam_input.value()
 
-        bank.in_alarm = bank.beam_triggered and bank.is_armed
+        bank.in_alarm = (bank.beam_triggered or bank.door_open) and bank.is_armed
 
         # sound buzzer if beam triggered
         if bank.in_alarm == True:
             sound_buzzer(100, 0.5)
+        else:
+            # make sure buzzer is off
+            turn_off_buzzer()
 
         lcd.update_state(rtc, bank)
         

@@ -3,7 +3,10 @@ from machine import Pin
 
 from pins import BUZZER_PIN
 
-buzzer = Pin(BUZZER_PIN, Pin.OUT)
+buzzer = Pin(BUZZER_PIN, Pin.OUT, 0)
+
+def turn_off_buzzer():
+     buzzer.value(0)  # Turn off the buzzer
 
 
 # Buzzer control
